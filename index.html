@@ -1,8 +1,10 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
   <head>
     <base target="_top">
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <title>Mi Playlist de PDFs</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
       :root { --bg: #f8f9fa; --text: #212529; --sidebar: #ffffff; --item-border: #eee; --modal-bg: #fff; }
@@ -12,27 +14,33 @@
       .header-playlist { background: #212529; color: white; height: 70px; display: flex; justify-content: space-between; align-items: center; padding: 0 15px; border-bottom: 2px solid #333; z-index: 1001; }
       .btn-nav { height: 50px; width: 55px; font-size: 20px; font-weight: bold; border-radius: 12px; }
       .main-app { display: flex; height: calc(100vh - 70px); position: relative; }
+      
       .sidebar { width: 320px; background: var(--sidebar); border-right: 1px solid var(--item-border); display: flex; flex-direction: column; transition: transform 0.4s ease, width 0.4s ease; }
       .sidebar.hidden { width: 0; transform: translateX(-100%); overflow: hidden; }
       .lista-docs { flex: 1; overflow-y: auto; }
+      
       .btn-pdf { width: 100%; text-align: left; padding: 15px; border: none; background: transparent; border-bottom: 1px solid var(--item-border); color: var(--text); font-size: 15px; display: flex; justify-content: space-between; align-items: center; }
       .paginacion { display: flex; gap: 5px; padding: 10px; flex-wrap: wrap; background: #212529; }
       .btn-pag { padding: 4px 8px; font-size: 11px; border-radius: 5px; border: 1px solid #555; background: #333; color: white; cursor: pointer; }
       .btn-pag.active { background: #0d6efd; border-color: #0d6efd; }
+      
       .viewer-container { flex: 1; background: #525659; position: relative; }
       .visor-frame { width: 100%; height: 100%; border: none; }
       
-      /* Toast */
-      #toast { visibility: hidden; min-width: 250px; background: #333; color: #fff; text-align: center; border-radius: 25px; padding: 12px; position: fixed; z-index: 2000; left: 50%; bottom: 80px; transform: translateX(-50%); font-size: 14px; opacity: 0; transition: 0.3s; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+      /* Toast de 2 segundos */
+      #toast { visibility: hidden; min-width: 250px; background: #333; color: #fff; text-align: center; border-radius: 25px; padding: 12px; position: fixed; z-index: 4000; left: 50%; bottom: 80px; transform: translateX(-50%); font-size: 14px; opacity: 0; transition: 0.3s; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
       #toast.show { visibility: visible; opacity: 1; }
       
-      /* Estilos del Modal */
       .modal-custom { display: none; position: fixed; z-index: 3000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); align-items: center; justify-content: center; }
-      .modal-content { background: var(--modal-bg); color: var(--text); padding: 25px; border-radius: 15px; width: 90%; max-width: 400px; text-align: center; box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
+      .modal-content { background: var(--modal-bg); color: var(--text); padding: 25px; border-radius: 15px; width: 90%; max-width: 400px; text-align: center; }
       
       .star { color: #ccc; font-size: 20px; cursor: pointer; padding-right: 10px; }
       .star.active { color: #ffc107; }
-      @media (max-width: 768px) { .sidebar { width: 100%; position: absolute; z-index: 1000; height: 100%; } body.modo-visor .sidebar { transform: translateX(-100%); } }
+      
+      @media (max-width: 768px) { 
+        .sidebar { width: 100%; position: absolute; z-index: 1000; height: 100%; } 
+        body.modo-visor .sidebar { transform: translateX(-100%); } 
+      }
     </style>
   </head>
   <body data-theme="light">
@@ -75,39 +83,47 @@
           <div class="p-4 text-center text-muted" id="status">Cargando coros...</div>
         </div>
       </div>
-      <div class="viewer-container"><iframe id="visorMain" class="visor-frame"></iframe></div>
+      <div class="viewer-container">
+        <iframe id="visorMain" class="visor-frame" src=""></iframe>
+      </div>
     </div>
 
     <script>
       const LINK_DROPBOX = "https://www.dropbox.com/scl/fo/q1t3ra4k9xtfittocpizo/AANhxulckk_NYDFKuZfB23g?rlkey=b0fztpkmiaposrq7cn0ppnbfn&st=cjqj9dhn&dl=1";
 
-          let db = [], playlist = [], favoritos = JSON.parse(localStorage.getItem('favs_pdfs')) || [], pos = -1, paginaActual = 0;
-                const tPagina = 50;
-          
-                window.onload = () => {
-                  // Primero cargamos lo que esté en memoria para que sea instantáneo
-                  const cached = localStorage.getItem('db_offline');
-                  if (cached) { 
-                    db = JSON.parse(cached); 
-                    render(); 
-                  }
-          
-                  // Luego actualizamos la lista desde el archivo de GitHub
-                  fetch('datos.json')
-                    .then(response => response.json())
-                    .then(res => {
-                      db = res;
-                      localStorage.setItem('db_offline', JSON.stringify(res));
-                      if(document.getElementById('status')) document.getElementById('status').style.display='none';
-                      render();
-                    })
-                    .catch(err => console.log("Cargando desde caché..."));
-                };
+      let db = [], playlist = [], favoritos = JSON.parse(localStorage.getItem('favs_pdfs')) || [], pos = -1, paginaActual = 0;
+      const tPagina = 50;
+      
+      window.onload = () => {
+        const cached = localStorage.getItem('db_offline');
+        if (cached) { 
+          db = JSON.parse(cached); 
+          render(); 
+        }
+
+        fetch('datos.json')
+          .then(response => response.json())
+          .then(res => {
+            db = res;
+            localStorage.setItem('db_offline', JSON.stringify(res));
+            if(document.getElementById('status')) document.getElementById('status').style.display='none';
+            render();
+          })
+          .catch(err => {
+            console.log("Usando datos de caché.");
+            if(db.length > 0 && document.getElementById('status')) document.getElementById('status').style.display='none';
+          });
+      };
 
       function render() { crearPaginacion(); cargarPagina(paginaActual); }
-      function mostrarToast(msg) { const t = document.getElementById("toast"); t.innerText = msg; t.classList.add("show"); setTimeout(() => t.classList.remove("show"), 2000); }
+
+      function mostrarToast(msg) { 
+        const t = document.getElementById("toast"); 
+        t.innerText = msg; 
+        t.classList.add("show"); 
+        setTimeout(() => t.classList.remove("show"), 2000); 
+      }
       
-      // Funciones del Modal
       function abrirModal() { document.getElementById('confirmModal').style.display = 'flex'; }
       function cerrarModal() { document.getElementById('confirmModal').style.display = 'none'; }
       function confirmarDescarga() {
@@ -119,8 +135,9 @@
       function toggleTheme() {
         const body = document.body;
         const current = body.getAttribute('data-theme');
-        body.setAttribute('data-theme', current === 'light' ? 'dark' : 'light');
-        mostrarToast("Modo " + (current === 'light' ? 'Oscuro' : 'Claro'));
+        const next = current === 'light' ? 'dark' : 'light';
+        body.setAttribute('data-theme', next);
+        mostrarToast("Modo " + (next === 'light' ? 'Claro' : 'Oscuro'));
       }
 
       function crearPaginacion() {
@@ -140,61 +157,90 @@
         let h = "";
         datos.forEach(item => {
           const isFav = favoritos.includes(item.id) ? 'active' : '';
-          const n = item.nombre.replace(/'/g, "");
           h += `<div class="btn-pdf">
             <span class="star ${isFav}" onclick="toggleFav('${item.id}')">★</span>
-            <span onclick="add('${item.id}', '${n}')" style="flex:1; cursor:pointer;">${item.nombre}</span>
+            <span onclick="add('${item.id}')" style="flex:1; cursor:pointer;">${item.nombre}</span>
             <div class="d-flex gap-1">
               <button class="btn btn-sm btn-success" onclick="descargarInd('${item.id}')">⬇</button>
-              <button class="btn btn-sm btn-outline-primary" onclick="add('${item.id}', '${n}')">+</button>
+              <button class="btn btn-sm btn-outline-primary" onclick="add('${item.id}')">+</button>
             </div>
           </div>`;
         });
         document.getElementById('lista').innerHTML = h || '<p class="p-3 text-center">Sin resultados</p>';
       }
 
-      function add(id, nombre) {
+      function add(id) {
+        const itemOriginal = db.find(i => i.id === id);
+        if (!itemOriginal) return;
+
+        // Validar si ya existe el PDF exacto en la lista
         if (playlist.some(i => i.id === id)) {
-          mostrarToast("Este PDF ya ha sido añadido.");
+          mostrarToast("El PDF ya ha sido añadido anteriormente.");
           return;
         }
-        playlist.push({id, nombre});
-        mostrarToast("Añadido: " + nombre);
-        if (playlist.length === 1) { pos = 0; cargarVisor(); }
+
+        playlist.push(itemOriginal);
+        mostrarToast("Añadido: " + itemOriginal.nombre);
+        
+        if (playlist.length === 1) { 
+          pos = 0; 
+          cargarVisor(); 
+        }
         actualizarUI();
       }
 
       function cargarVisor() {
         if (pos >= 0 && pos < playlist.length) {
-          document.getElementById('visorMain').src = "https://drive.google.com/file/d/" + playlist[pos].id + "/preview";
+          const url = "https://drive.google.com/file/d/" + playlist[pos].id + "/preview";
+          document.getElementById('visorMain').src = url;
           if (window.innerWidth <= 768) document.body.classList.add('modo-visor');
         }
         actualizarUI();
       }
 
-      function paso(n) { if (pos + n >= 0 && pos + n < playlist.length) { pos += n; cargarVisor(); } }
-      function actualizarUI() { document.getElementById('contador').innerText = playlist.length > 0 ? (pos + 1) + "/" + playlist.length : "0/0"; }
-      function limpiar() { playlist = []; pos = -1; document.getElementById('visorMain').src = ""; actualizarUI(); irALista(); mostrarToast("Lista vaciada."); }
+      function paso(n) { 
+        if (pos + n >= 0 && pos + n < playlist.length) { 
+          pos += n; 
+          cargarVisor(); 
+        } 
+      }
+
+      function actualizarUI() { 
+        document.getElementById('contador').innerText = playlist.length > 0 ? (pos + 1) + "/" + playlist.length : "0/0"; 
+      }
+
+      function limpiar() { 
+        playlist = []; 
+        pos = -1; 
+        document.getElementById('visorMain').src = ""; 
+        actualizarUI(); 
+        irALista(); 
+        mostrarToast("Lista vaciada."); 
+      }
+
       function irALista() { document.body.classList.remove('modo-visor'); }
+      
       function toggleSidebar() { document.getElementById('sidebar').classList.toggle('hidden'); }
       
       function filtrar() {
         const q = document.getElementById('buscador').value.toLowerCase();
         if (!q) return cargarPagina(paginaActual);
-        dibujar(db.filter(a => a.nombre.toLowerCase().includes(q)).slice(0, 100));
+        const filtrados = db.filter(a => a.nombre.toLowerCase().includes(q));
+        dibujar(filtrados.slice(0, 100));
       }
 
       function toggleFav(id) {
         favoritos = favoritos.includes(id) ? favoritos.filter(f => f !== id) : [...favoritos, id];
         localStorage.setItem('favs_pdfs', JSON.stringify(favoritos));
-        filtrar();
+        
+        // Refrescar la vista actual sin perder el buscador
+        const q = document.getElementById('buscador').value.toLowerCase();
+        if (q) filtrar(); else cargarPagina(paginaActual);
       }
 
       function descargarInd(id) {
-        const url = `https://docs.google.com/uc?export=download&id=${id}`;
-        window.open(url, '_blank');
+        window.open(`https://docs.google.com/uc?export=download&id=${id}`, '_blank');
       }
     </script>
   </body>
-
 </html>
