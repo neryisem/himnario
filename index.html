@@ -191,8 +191,12 @@
 
       function cargarVisor() {
         if (pos >= 0 && pos < playlist.length) {
-          const url = "https://drive.google.com/file/d/" + playlist[pos].id + "/preview";
+          // Este enlace es mucho más rápido que el de /preview
+          // Fuerza al navegador a usar su propio lector de PDF
+          const url = "https://docs.google.com/viewerng/viewer?embedded=true&url=https://drive.google.com/uc?id=" + playlist[pos].id;
+          
           document.getElementById('visorMain').src = url;
+          
           if (window.innerWidth <= 768) document.body.classList.add('modo-visor');
         }
         actualizarUI();
@@ -244,3 +248,4 @@
     </script>
   </body>
 </html>
+
