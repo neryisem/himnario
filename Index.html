@@ -81,18 +81,28 @@
     <script>
       const LINK_DROPBOX = "https://www.dropbox.com/scl/fo/q1t3ra4k9xtfittocpizo/AANhxulckk_NYDFKuZfB23g?rlkey=b0fztpkmiaposrq7cn0ppnbfn&st=cjqj9dhn&dl=1";
 
-      let db = [], playlist = [], favoritos = JSON.parse(localStorage.getItem('favs_pdfs')) || [], pos = -1, paginaActual = 0;
-      const tPagina = 50;
-
-      window.onload = () => {
-        const cached = localStorage.getItem('db_offline');
-        if (cached) { db = JSON.parse(cached); render(); }
-        google.script.run.withSuccessHandler(res => {
-          db = res; localStorage.setItem('db_offline', JSON.stringify(res));
-          if(document.getElementById('status')) document.getElementById('status').style.display='none';
-          render();
-        }).obtenerPdfs();
-      };
+          let db = [], playlist = [], favoritos = JSON.parse(localStorage.getItem('favs_pdfs')) || [], pos = -1, paginaActual = 0;
+                const tPagina = 50;
+          
+                window.onload = () => {
+                  // Primero cargamos lo que esté en memoria para que sea instantáneo
+                  const cached = localStorage.getItem('db_offline');
+                  if (cached) { 
+                    db = JSON.parse(cached); 
+                    render(); 
+                  }
+          
+                  // Luego actualizamos la lista desde el archivo de GitHub
+                  fetch('datos.json')
+                    .then(response => response.json())
+                    .then(res => {
+                      db = res;
+                      localStorage.setItem('db_offline', JSON.stringify(res));
+                      if(document.getElementById('status')) document.getElementById('status').style.display='none';
+                      render();
+                    })
+                    .catch(err => console.log("Cargando desde caché..."));
+                };
 
       function render() { crearPaginacion(); cargarPagina(paginaActual); }
       function mostrarToast(msg) { const t = document.getElementById("toast"); t.innerText = msg; t.classList.add("show"); setTimeout(() => t.classList.remove("show"), 2000); }
@@ -186,4 +196,5 @@
       }
     </script>
   </body>
+
 </html>
